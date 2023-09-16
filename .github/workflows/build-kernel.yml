@@ -1,68 +1,71 @@
-name: Build MikaKernel
-
+name: Manual Build Twilight v2 with KSU For Redmi K40(alioth)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch
 
 
 jobs:
-  build-kernel:
+  TwilightForAlioth:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup environment
+      - name: Installing Dependencies
         run: |
-          echo "ANYKERNEL_SOURCE=$(cat config.env | grep -w "ANYKERNEL_SOURCE" | head -n 1 | cut -d "=" -f 2)" >> $GITHUB_ENV
-          echo "ANYKERNEL_SOURCE_BRANCH=$(cat config.env | grep -w "ANYKERNEL_SOURCE_BRANCH" | head -n 1 | cut -d "=" -f 2)" >> $GITHUB_ENV
-          echo "KERNEL_SOURCE=$(cat config.env | grep -w "KERNEL_SOURCE" | head -n 1 | cut -d "=" -f 2)" >> $GITHUB_ENV
-          echo "KERNEL_SOURCE_BRANCH=$(cat config.env | grep -w "KERNEL_SOURCE_BRANCH" | head -n 1 | cut -d "=" -f 2)" >> $GITHUB_ENV
-          echo "KERNEL_TARGET=$(cat config.env | grep -w "KERNEL_TARGET" | head -n 1 | cut -d "=" -f 2)" >> $GITHUB_ENV
-          echo "BUILD_ARGS=$(cat config.env | grep -w "BUILD_ARGS" | head -n 1 | cut -d ":" -f 2)" >> $GITHUB_ENV
-
-      - name: Pull toolchain
+          sudo apt update -y
+          sudo apt-get install -y zip flex bison libncurses-dev gawk glibc-source libiberty-dev autoconf kmod bc build-essential gcc libc6 curl libstdc++6 git wget libssl-dev cpio p7zip-full
+          sudo apt clean
+          echo "BUILD_TIME=$(TZ=Asia/Shanghai date +%F)" >> $GITHUB_ENV
+      - name: Cloning Sources and Toolchain
         run: |
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64-linux-android-4.9
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm-linux-androideabi-4.9
-          mkdir clang && curl https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/clang-r416183b1.tar.gz -RLO && tar -C clang/ -xf clang-*.tar.gz
-
-      - name: Pull kernel source
+          git clone https://github.com/Tkiliay/android_kernel_xiaomi_sm8250.git --depth=1 -b ut-ksu --recurse-submodules android_kernel_xiaomi_sm8250
+          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/aarch64-linux-android-4.9
+          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/arm-linux-androideabi-4.9
+          git clone https://github.com/Tkiliay/AnyKernel3.git -b alioth
+          git clone https://gitlab.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-r445002 --depth=1 --single-branch --no-tags -b 12.0 ~/clang
+      - name: Add Ksu
         run: |
-          git clone --depth=1 ${{ env.KERNEL_SOURCE }} -b ${{ env.KERNEL_SOURCE_BRANCH }} kernel-source
-          echo "KERNEL_VERSION="$(cat kernel-source/arch/arm64/configs/${{ env.KERNEL_TARGET }}_defconfig | grep "CONFIG_LOCALVERSION\=" | sed -r 's/.*"(.+)".*/\1/' | sed 's/^.//')"" >> $GITHUB_ENV
-
-      - name: Build kernel
+          cd android_kernel_xiaomi_sm8250
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+      - name: Compiling Kernel
         run: |
-          export KBUILD_BUILD_USER="zclkkk"
-          export KBUILD_BUILD_HOST="workspace"
-          export PATH=$GITHUB_WORKSPACE/clang/bin:${PATH}
-          args="                  ARCH=arm64 \
-                                  O=../out \
-                                  ${{ env.BUILD_ARGS }} \
-                                  CLANG_TRIPLE=aarch64-linux-gnu- \
-                                  CROSS_COMPILE=$GITHUB_WORKSPACE/aarch64-linux-android-4.9/bin/aarch64-linux-android- \
-                                  CROSS_COMPILE_ARM32=$GITHUB_WORKSPACE/arm-linux-androideabi-4.9/bin/arm-linux-androideabi- "
-          cd kernel-source
-          make ${args} ${{ env.KERNEL_TARGET }}_defconfig
-          make -j$(($(getconf _NPROCESSORS_ONLN) * 2)) ${args}
+          CLANG=~/clang/bin
+          GCC32=~/arm-linux-androideabi-4.9/bin
+          GCC64=~/aarch64-linux-android-4.9/bin
+          PATH=$CLANG:$GCC64:$GCC32:$PATH
+          export PATH
+          export ARCH=arm64
+          export CLANG_TRIPLE=aarch64-linux-gnu
+          export CROSS_COMPILE=aarch64-linux-android-
+          export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+          output_dir=out
+          pushd android_kernel_xiaomi_sm8250
+          make O="$output_dir" \
+                      vendor/kona-perf_defconfig \
+                      vendor/xiaomi/sm8250-common.config \
+                      vendor/xiaomi/alioth.config
 
-      - name: Package kernel
+
+          make -j $(nproc) \
+                       O="$output_dir" \
+                       CC=clang
+          popd
+      - name: Packaging the Kernel (KSU)
         run: |
-          git clone --depth=1 ${{ env.ANYKERNEL_SOURCE }} -b ${{ env.ANYKERNEL_SOURCE_BRANCH }} AnyKernel3 && rm -rf AnyKernel3/.git AnyKernel3/.github AnyKernel3/LICENSE AnyKernel3/README.md
-          if [[ -f out/arch/arm64/boot/Image.gz-dtb ]]; then
-            cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/Image.gz-dtb
-          elif [[ -f out/arch/arm64/boot/Image-dtb ]]; then
-            cp out/arch/arm64/boot/Image-dtb AnyKernel3/Image-dtb
-          elif [[ -f out/arch/arm64/boot/Image.gz ]]; then
-            cp out/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
-          elif [[ -f out/arch/arm64/boot/Image ]]; then
-            cp out/arch/arm64/boot/Image AnyKernel3/Image
-          fi
-          if [ -f out/arch/arm64/boot/dtbo.img ]; then
-            cp out/arch/arm64/boot/dtbo.img AnyKernel3/dtbo.img
-          fi
-
-      - name: Upload kernel to artifact
-        uses: actions/upload-artifact@v3
+          cp -v android_kernel_xiaomi_sm8250/out/arch/arm64/boot/Image \
+                     AnyKernel3/
+          pushd AnyKernel3
+          7z a -mx9 ../Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP.zip *
+          popd
+      - name: Creating Config Info
+        run: |
+          echo "Device: Redmi K40
+          Code: Alioth
+          Build Code: ${{ github.run_number }}
+          Twilight Kernel with KernelSU For Redmi K40" >> INFO.txt
+      - name: Uploading Kernel Package to GH-Release
+        uses: ncipollo/release-action@v1.8.6
         with:
-          name: ${{ env.KERNEL_VERSION }}_${{ env.KERNEL_TARGET }}
-          path: AnyKernel3/*
+          artifacts: Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP.zip
+          name: "Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP"
+          tag: " ${{ env.BUILD_TIME }}_Alioth_kernelsu-CI_${{ github.run_number }}"
+          bodyFile: "INFO.txt"
+          token: ${{ secrets.GITHUB_TOKEN }}
