@@ -37,7 +37,7 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-android-
           export CROSS_COMPILE_ARM32=arm-linux-androideabi-
           export KBUILD_BUILD_VERSION=1
-          export KBUILD_BUILD_TIMESTAMP="2022-01"
+          export KBUILD_BUILD_TIMESTAMP="${{ env.BUILD_TIME }}"
           export KBUILD_BUILD_USER=BUILDER
           export KBUILD_BUILD_HOST="-haiyan"
           output_dir=out
