@@ -68,8 +68,8 @@ jobs:
       - name: Uploading Kernel Package to GH-Release
         uses: ncipollo/release-action@v1.8.6
         with:
-          artifacts: Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP.zip
-          name: "Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP"
+          artifacts: KernelSU-${{ env.BUILD_TIME }}-alioth-lineageos.zip
+          name: "KernelSU-CI-${{ env.BUILD_TIME }}-alioth-lineageos"
           tag: " ${{ env.BUILD_TIME }}_Alioth_kernelsu-CI_${{ github.run_number }}"
           bodyFile: "INFO.txt"
           token: ${{ secrets.GITHUB_TOKEN }}
