@@ -40,6 +40,7 @@ jobs:
           export KBUILD_BUILD_TIMESTAMP="${{ env.BUILD_TIME }}"
           export KBUILD_BUILD_USER=BUILDER
           export KBUILD_BUILD_HOST="-haiyan"
+          KERNEL_VERSION = 4.19.282-lineageos
           output_dir=out
           pushd android_kernel_xiaomi_sm8250
           make O="$output_dir" \
