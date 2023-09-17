@@ -39,7 +39,7 @@ jobs:
           export KBUILD_BUILD_VERSION=1
           export KBUILD_BUILD_TIMESTAMP="2022-01"
           export KBUILD_BUILD_USER=BUILDER
-          EXPORT KBUILD_BUILD_HOST="-haiyan"
+          export KBUILD_BUILD_HOST="-haiyan"
           output_dir=out
           pushd android_kernel_xiaomi_sm8250
           make O="$output_dir" \
