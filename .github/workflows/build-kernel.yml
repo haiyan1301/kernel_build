@@ -24,7 +24,7 @@ jobs:
       - name: Add Ksu
         run: |
           cd nexus_kernel_xiaomi_sm8250
-          cp arch/arm64/configs/alioth_deconfig arch/arm64/configs/alioth_deconfig.config
+          cp nexus_kernel_xiaomi_sm8250/arch/arm64/configs/alioth_deconfig nexus_kernel_xiaomi_sm8250/arch/arm64/configs/alioth_deconfig.config
           curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
       - name: Compiling Kernel
         run: |
