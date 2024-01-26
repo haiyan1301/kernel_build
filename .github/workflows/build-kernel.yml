@@ -46,7 +46,9 @@ jobs:
 
           make -j $(nproc) \
                        O="$output_dir" \
-                       CC=clang
+                       CC=clang \
+                       -Wno-discarded-qualifiers
+                       
           popd
       - name: Packaging the Kernel (KSU)
         run: |
