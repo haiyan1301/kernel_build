@@ -41,8 +41,8 @@ jobs:
           pushd nexus_kernel_xiaomi_sm8250
           make O="$output_dir" \
                       vendor/kona-perf_defconfig \
-                      alioth_defconfig
-
+                      alioth_defconfig \
+                      -Wno-discarded-qualifiers
 
           make -j $(nproc) \
                        O="$output_dir" \
