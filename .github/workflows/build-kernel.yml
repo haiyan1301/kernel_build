@@ -20,7 +20,7 @@ jobs:
           git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/aarch64-linux-android-4.9
           git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/arm-linux-androideabi-4.9
           git clone https://github.com/Tkiliay/AnyKernel3.git -b alioth
-          git clone https://gitlab.com/Project-Nexus/nexus-clang.git --depth=1 --single-branch --no-tags -b nexus-15 ~/clang
+          git clone https://gitlab.com/NotZeetaa/aosp-clang-17.0.0.git --depth=1 --single-branch --no-tags -b master ~/clang
       - name: Add Ksu
         run: |
           cd nexus_kernel_xiaomi_sm8250
