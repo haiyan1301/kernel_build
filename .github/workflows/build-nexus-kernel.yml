@@ -3,7 +3,6 @@ name: Nexus kernel for alioth
 on:
   workflow_dispatch
 
-
 jobs:
   TwilightForAlioth:
     runs-on: ubuntu-latest
@@ -14,6 +13,7 @@ jobs:
           sudo apt-get install -y zip flex bison libncurses-dev gawk glibc-source libiberty-dev autoconf kmod bc build-essential gcc libc6 curl libstdc++6 git wget libssl-dev cpio p7zip-full curl zstd
           sudo apt clean
           echo "BUILD_TIME=$(TZ=Asia/Shanghai date +%F)" >> $GITHUB_ENV
+
       - name: Cloning Sources and Toolchain
         run: |
           git clone https://github.com/haiyan1301/nexus_kernel_xiaomi_sm8250.git --depth=1 -b sched-7 --recurse-submodules nexus_kernel_xiaomi_sm8250
@@ -22,12 +22,24 @@ jobs:
           git clone https://github.com/Tkiliay/AnyKernel3.git -b alioth
           mkdir -p ~/downloads
           curl -o ~/downloads/neutron-clang-05012024.tar.zst  https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/05012024/neutron-clang-05012024.tar.zst
+          
+      - name: Wait for download to complete
+        uses: actions/wait-for@v2
+        with:
+          timeout: '10m'  # Set timeout based on your expected download time
+          id: wait-download
+          run: echo "Download completed"
+
+      - name: Extract file
+        run: |
           zstd -d ~/downloads/neutron-clang-05012024.tar.zst
           tar -xf ~/downloads/neutron-clang-05012024.tar -C ~/clang
+
       - name: Add Ksu
         run: |
           cd nexus_kernel_xiaomi_sm8250
           curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+
       - name: Compiling Kernel
         run: |
           CLANG=~/clang/bin
@@ -55,6 +67,7 @@ jobs:
                        O="$output_dir" \
                        CC=clang
           popd
+
       - name: Packaging the Kernel (KSU)
         run: |
           cp -v nexus_kernel_xiaomi_sm8250/out/arch/arm64/boot/Image \
@@ -62,12 +75,14 @@ jobs:
           pushd AnyKernel3
           7z a -mx9 ../Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP.zip *
           popd
+
       - name: Creating Config Info
         run: |
           echo "Device: Redmi K40
           Code: Alioth
           Build Code: ${{ github.run_number }}
           Twilight Kernel with KernelSU For Redmi K40" >> INFO.txt
+
       - name: Uploading Kernel Package to GH-Release
         uses: ncipollo/release-action@v1.8.6
         with:
