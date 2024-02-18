@@ -44,7 +44,7 @@ jobs:
           export KBUILD_BUILD_USER=BUILDER
           export KBUILD_BUILD_HOST="-haiyan"
           output_dir=out
-          pushd android_kernel_xiaomi_sm8250
+          pushd nexus_kernel_xiaomi_sm8250
           make O="$output_dir" \
                       alioth_deconfig \
                       vendor/kona-perf_defconfig \
@@ -57,7 +57,7 @@ jobs:
           popd
       - name: Packaging the Kernel (KSU)
         run: |
-          cp -v android_kernel_xiaomi_sm8250/out/arch/arm64/boot/Image \
+          cp -v nexus_kernel_xiaomi_sm8250/out/arch/arm64/boot/Image \
                      AnyKernel3/
           pushd AnyKernel3
           7z a -mx9 ../Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP.zip *
