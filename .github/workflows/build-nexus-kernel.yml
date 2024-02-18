@@ -24,11 +24,14 @@ jobs:
           curl -o ~/downloads/neutron-clang-05012024.tar.zst  https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/05012024/neutron-clang-05012024.tar.zst
           
       - name: Wait for download to complete
-        uses: actions/wait-for@v2
-        with:
-          timeout: '10m'  # Set timeout based on your expected download time
-          id: wait-download
-          run: echo "Download completed"
+        run: |
+          # 设置下载文件的路径
+          download_path=~/downloads/neutron-clang-05012024.tar.zst
+          # 循环检查文件是否存在，直到下载完成
+          while [ ! -f "$download_path" ]; do
+            sleep 10  # 每10秒检查一次
+          done
+          echo "Download completed"
 
       - name: Extract file
         run: |
@@ -90,4 +93,3 @@ jobs:
           name: "Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP"
           tag: " ${{ env.BUILD_TIME }}_Alioth_kernelsu-CI_${{ github.run_number }}"
           bodyFile: "INFO.txt"
-          token: ${{ secrets.GITHUB_TOKEN }}
