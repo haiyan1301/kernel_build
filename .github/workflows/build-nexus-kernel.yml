@@ -1,0 +1,75 @@
+name: Manual Build Twilight v2 with KSU For Redmi K40(alioth)
+
+on:
+  workflow_dispatch
+
+
+jobs:
+  TwilightForAlioth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installing Dependencies
+        run: |
+          sudo apt update -y
+          sudo apt-get install -y zip flex bison libncurses-dev gawk glibc-source libiberty-dev autoconf kmod bc build-essential gcc libc6 curl libstdc++6 git wget libssl-dev cpio p7zip-full
+          sudo apt clean
+          echo "BUILD_TIME=$(TZ=Asia/Shanghai date +%F)" >> $GITHUB_ENV
+      - name: Cloning Sources and Toolchain
+        run: |
+          git clone https://github.com/haiyan1301/android_kernel_xiaomi_sm8250.git --depth=1 -b lineage-20 --recurse-submodules android_kernel_xiaomi_sm8250
+          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/aarch64-linux-android-4.9
+          git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/arm-linux-androideabi-4.9
+          git clone https://github.com/Tkiliay/AnyKernel3.git -b alioth
+          git clone https://gitlab.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-r445002 --depth=1 --single-branch --no-tags -b 12.0 ~/clang
+      - name: Add Ksu
+        run: |
+          cd android_kernel_xiaomi_sm8250
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+      - name: Compiling Kernel
+        run: |
+          CLANG=~/clang/bin
+          GCC32=~/arm-linux-androideabi-4.9/bin
+          GCC64=~/aarch64-linux-android-4.9/bin
+          PATH=$CLANG:$GCC64:$GCC32:$PATH
+          export PATH
+          export ARCH=arm64
+          export CLANG_TRIPLE=aarch64-linux-gnu
+          export CROSS_COMPILE=aarch64-linux-android-
+          export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+          export KBUILD_BUILD_VERSION=1
+          export KBUILD_BUILD_TIMESTAMP="2022-01"
+          export KBUILD_BUILD_USER=BUILDER
+          export KBUILD_BUILD_HOST="-haiyan"
+          output_dir=out
+          pushd android_kernel_xiaomi_sm8250
+          make O="$output_dir" \
+                      vendor/kona-perf_defconfig \
+                      vendor/xiaomi/sm8250-common.config \
+                      vendor/xiaomi/alioth.config
+
+
+          make -j $(nproc) \
+                       O="$output_dir" \
+                       CC=clang
+          popd
+      - name: Packaging the Kernel (KSU)
+        run: |
+          cp -v android_kernel_xiaomi_sm8250/out/arch/arm64/boot/Image \
+                     AnyKernel3/
+          pushd AnyKernel3
+          7z a -mx9 ../Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP.zip *
+          popd
+      - name: Creating Config Info
+        run: |
+          echo "Device: Redmi K40
+          Code: Alioth
+          Build Code: ${{ github.run_number }}
+          Twilight Kernel with KernelSU For Redmi K40" >> INFO.txt
+      - name: Uploading Kernel Package to GH-Release
+        uses: ncipollo/release-action@v1.8.6
+        with:
+          artifacts: Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP.zip
+          name: "Twilight-V2_KernelSU-CI-${{ env.BUILD_TIME }}-alioth-AOSP"
+          tag: " ${{ env.BUILD_TIME }}_Alioth_kernelsu-CI_${{ github.run_number }}"
+          bodyFile: "INFO.txt"
+          token: ${{ secrets.GITHUB_TOKEN }}
