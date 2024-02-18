@@ -11,19 +11,22 @@ jobs:
       - name: Installing Dependencies
         run: |
           sudo apt update -y
-          sudo apt-get install -y zip flex bison libncurses-dev gawk glibc-source libiberty-dev autoconf kmod bc build-essential gcc libc6 curl libstdc++6 git wget libssl-dev cpio p7zip-full
+          sudo apt-get install -y zip flex bison libncurses-dev gawk glibc-source libiberty-dev autoconf kmod bc build-essential gcc libc6 curl libstdc++6 git wget libssl-dev cpio p7zip-full curl zstd
           sudo apt clean
           echo "BUILD_TIME=$(TZ=Asia/Shanghai date +%F)" >> $GITHUB_ENV
       - name: Cloning Sources and Toolchain
         run: |
-          git clone https://github.com/haiyan1301/android_kernel_xiaomi_sm8250.git --depth=1 -b lineage-20 --recurse-submodules android_kernel_xiaomi_sm8250
+          git clone https://github.com/haiyan1301/nexus_kernel_xiaomi_sm8250.git --depth=1 -b sched-7 --recurse-submodules nexus_kernel_xiaomi_sm8250
           git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/aarch64-linux-android-4.9
           git clone https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 -b lineage-19.1 --depth=1 --single-branch --no-tags ~/arm-linux-androideabi-4.9
           git clone https://github.com/Tkiliay/AnyKernel3.git -b alioth
-          git clone https://gitlab.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-r445002 --depth=1 --single-branch --no-tags -b 12.0 ~/clang
+          mkdir -p ~/downloads
+          curl -o ~/downloads/neutron-clang-05012024.tar.zst  https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/05012024/neutron-clang-05012024.tar.zst
+          zstd -d ~/downloads/neutron-clang-05012024.tar.zst
+          tar -xf ~/downloads/neutron-clang-05012024.tar -C ~/clang
       - name: Add Ksu
         run: |
-          cd android_kernel_xiaomi_sm8250
+          cd nexus_kernel_xiaomi_sm8250
           curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
       - name: Compiling Kernel
         run: |
@@ -43,8 +46,8 @@ jobs:
           output_dir=out
           pushd android_kernel_xiaomi_sm8250
           make O="$output_dir" \
+                      alioth_deconfig \
                       vendor/kona-perf_defconfig \
-                      vendor/xiaomi/sm8250-common.config \
                       vendor/xiaomi/alioth.config
 
 
