@@ -1,4 +1,4 @@
-name: Manual Build Twilight v2 with KSU For Redmi K40(alioth)
+name: Nexus kernel for alioth
 
 on:
   workflow_dispatch
