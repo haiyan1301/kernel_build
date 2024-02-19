@@ -27,11 +27,18 @@ jobs:
         run: |
           # 设置下载文件的路径
           download_path=~/downloads/neutron-clang-05012024.tar.zst
-          # 循环检查文件是否存在，直到下载完成
-          while [ ! -f "$download_path" ]; do
+          # 获取文件的初始大小
+          initial_size=$(wc -c < "$download_path")
+          # 循环检查文件大小，直到文件大小不再增加，即下载完成
+          while true; do
             sleep 10  # 每10秒检查一次
+            current_size=$(wc -c < "$download_path")
+            if [ $current_size -eq $initial_size ]; then
+              echo "Download completed"
+              break
+            fi
+            initial_size=$current_size
           done
-          echo "Download completed"
 
       - name: Extract file
         run: |
